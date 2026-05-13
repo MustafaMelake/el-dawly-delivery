@@ -8,7 +8,7 @@ export const orderSchema = z.object({
   dropoffAddress: z.string().min(5, "عنوان التوصيل مطلوب"),
   fromZone: z.enum(["MENOUF", "SERS", "BERHEEM"]),
   toZone: z.enum(["MENOUF", "SERS", "BERHEEM"]),
-  itemCost: z.coerce.number().min(0, "التكلفة لا يمكن أن تكون سالبة"),
+  itemCost: z.any().transform((v) => Number(v || 0)),
 });
 
 export type OrderValues = z.infer<typeof orderSchema>;
@@ -17,4 +17,4 @@ export const trackOrderSchema = z.object({
   orderId: z.string().min(1, "برجاء إدخال رقم الطلب"),
 });
 
-export type trackOrderSchema = z.infer<typeof trackOrderSchema>
+export type trackOrderSchema = z.infer<typeof trackOrderSchema>;
