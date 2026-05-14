@@ -1,12 +1,13 @@
 import { PrismaClient } from "@prisma/client";
 
-// تعريف نوع للـ global object عشان TypeScript ميزعلش
+const prismaClientSingleton = () => {
+  return new PrismaClient(); // لا تضع datasources هنا، Prisma ستقرأ الـ ENV تلقائياً
+};
+
 declare global {
-  var prisma: PrismaClient | undefined;
+  var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-// لو فيه نسخة قديمة موجودة استخدمها، لو مفيش اعمل واحدة جديدة
-export const db = globalThis.prisma || new PrismaClient();
+export const db = globalThis.prisma ?? prismaClientSingleton();
 
-// لو إحنا مش في الـ Production، احفظ النسخة دي في الـ global object
 if (process.env.NODE_ENV !== "production") globalThis.prisma = db;

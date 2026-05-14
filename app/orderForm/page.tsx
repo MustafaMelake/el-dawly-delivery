@@ -21,6 +21,7 @@ import { Button } from "@/components/ui/button";
 import { createOrder } from "../actions/order";
 import Link from "next/link";
 import { useState } from "react";
+import error from "next/error";
 export default function OrderForm() {
   const [orderId, setOrderId] = useState<string | null>(null);
   const {
@@ -43,6 +44,7 @@ export default function OrderForm() {
     },
   });
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const selectedFrom = watch("fromZone");
   const selectedTo = watch("toZone");
   const itemCostValue = watch("itemCost") || 0;
@@ -53,6 +55,7 @@ export default function OrderForm() {
 
   const onSubmit: SubmitHandler<OrderValues> = async (values) => {
     try {
+      console.log(values);
       const result = await createOrder(values);
 
       if (result.error) {
@@ -64,7 +67,9 @@ export default function OrderForm() {
         setOrderId(result.id);
         reset();
       }
+      // eslint-disable-next-line @typescript-eslint/no-unused-vars
     } catch (_err) {
+      console.error(error);
       alert("⚠️ حدث خطأ غير متوقع، يرجى المحاولة مرة أخرى");
     }
   };
