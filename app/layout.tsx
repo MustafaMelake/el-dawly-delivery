@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ديليفرى الدوللى",
+  title: "ديليفرى الدولى",
   description: " دليفرى الدولى هو اسرع وافضل مكتب توصيل ف مركز منوف ",
 };
 
