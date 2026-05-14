@@ -1,7 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 
 const prismaClientSingleton = () => {
-  return new PrismaClient(); // لا تضع datasources هنا، Prisma ستقرأ الـ ENV تلقائياً
+  return new PrismaClient(); 
 };
 
 declare global {
