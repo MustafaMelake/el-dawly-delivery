@@ -41,8 +41,9 @@ export default function TrackOrderPage() {
 
         <Button
           asChild
-          className="w-full h-16 rounded-[1.8rem] font-black text-lg shadow-xl shadow-primary/20"
-          disabled={!orderId}
+          className={`w-full h-16 rounded-[1.8rem] font-black text-lg shadow-xl shadow-primary/20 ${
+            !orderId ? "pointer-events-none opacity-50" : ""
+          }`}
         >
           <Link href={`/track-order/order/${orderId}`}>
             بدء التتبع <ArrowRight className="mr-2 h-5 w-5" />

@@ -1,4 +1,3 @@
-// app/actions/order.ts
 "use server";
 
 import { auth } from "@/lib/auth";
@@ -6,6 +5,7 @@ import { orderSchema, trackOrderSchema } from "@/lib/validators";
 import { revalidatePath } from "next/cache";
 import { prisma } from "@/lib/prisma";
 import { headers } from "next/headers";
+import { OrderStatus } from "@prisma/client";
 
 export async function createOrder(values: unknown) {
   const validated = orderSchema.safeParse(values);
@@ -31,8 +31,8 @@ export async function createOrder(values: unknown) {
 
     revalidatePath("/admin/orders");
     return { success: true, id: newOrder.id };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    console.error("Error creating order:", error);
     return { error: "فشل حفظ الأوردر" };
   }
 }
@@ -55,8 +55,8 @@ export async function getUserOrders() {
     const orders = await prisma.order.findMany({
       where: {
         OR: [
-          { userId: session.user.id }, 
-          { clientPhone: user?.phone || "no-phone-set" }, 
+          { userId: session.user.id },
+          { clientPhone: user?.phone || "no-phone-set" },
         ],
       },
       orderBy: { createdAt: "desc" },
@@ -87,17 +87,19 @@ export async function getOrderById(orderId: string) {
 
     if (!order) return { error: "الأوردر غير موجود" };
 
+    // 🚨 تم تصحيح اللوجيك هنا لمنع أي حد غريب يشوف الأوردر
     const isOwner = session?.user?.id === order.userId;
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const isGuestOwner = !order.userId && order.clientPhone;
+    const isGuest = !order.userId;
 
-    if (!isOwner && !session?.user) {
-      return { order };
+    // لو هو مش صاحب الأوردر، والأوردر ده مش بتاع زائر (guest)، امنعه!
+    // (هتحتاج تراجع البزنس لوجيك بتاعك هنا لو الأدمن محتاج يشوفه)
+    if (!isOwner && !isGuest && session?.user?.role !== "ADMIN") {
+      return { error: "غير مصرح لك بمشاهدة هذا الطلب" };
     }
 
     return { order };
-    // eslint-disable-next-line @typescript-eslint/no-unused-vars
   } catch (error) {
+    console.error("Error fetching order by ID:", error);
     return { error: "خطأ في السيرفر" };
   }
 }
@@ -120,6 +122,7 @@ export async function trackGuestOrder(values: unknown) {
         totalCollected: true,
         status: true,
         createdAt: true,
+        // 💡 ممتاز إنك استخدمت select هنا عشان متسربش بيانات للعميل
       },
     });
 
@@ -131,5 +134,64 @@ export async function trackGuestOrder(values: unknown) {
   } catch (error) {
     console.error("Tracking Error:", error);
     return { error: "حدث خطأ في السيرفر" };
+  }
+}
+
+export async function updateOrderStatus(orderId: string, status: OrderStatus) {
+  try {
+    // 💡 استخدام Transaction هنا مهم جداً!
+    // لو الأوردر اتحدث وحصل مشكلة في السيرفر قبل ما نحدث حالة الطيار، الطيار هيفضل "مشغول" للأبد!
+    // الـ Transaction بيضمن إن العمليتين يتموا مع بعض، أو يتلغوا مع بعض.
+    await prisma.$transaction(async (tx) => {
+      const updatedOrder = await tx.order.update({
+        where: { id: orderId },
+        data: { status },
+      });
+
+      if (
+        (status === "DELIVERED" || status === "CANCELLED") &&
+        updatedOrder.courierId
+      ) {
+        await tx.courier.update({
+          where: { id: updatedOrder.courierId },
+          data: { status: "AVAILABLE" },
+        });
+      }
+    });
+
+    revalidatePath("/admin/orders");
+    return { success: true };
+  } catch (error) {
+    console.error("Error updating order status:", error);
+    return {
+      success: false,
+      error: "حدث خطأ غير متوقع أثناء تحديث حالة الطلب",
+    };
+  }
+}
+
+export async function assignCourierToOrder(orderId: string, courierId: string) {
+  try {
+    // 💡 ممتاز! استخدامك للـ Transaction هنا كان بيرفكت.
+    await prisma.$transaction([
+      prisma.order.update({
+        where: { id: orderId },
+        data: {
+          courierId: courierId,
+          status: "ASSIGNED",
+          assignedAt: new Date(),
+        },
+      }),
+      prisma.courier.update({
+        where: { id: courierId },
+        data: { status: "BUSY" },
+      }),
+    ]);
+
+    revalidatePath("/admin/orders");
+    return { success: true };
+  } catch (error) {
+    console.error("Failed to assign courier:", error);
+    return { success: false, error: "حدث خطأ أثناء تعيين الطيار" };
   }
 }

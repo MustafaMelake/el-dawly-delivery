@@ -15,7 +15,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import Link from "next/link";
 import { authClient } from "@/lib/auth-client";
-import { redirect } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function ClientProfile() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,18 +23,28 @@ export default function ClientProfile() {
   const [loadingOrders, setLoadingOrders] = useState(true);
   const { data: session, isPending } = authClient.useSession();
 
+  const router = useRouter();
+
   useEffect(() => {
     if (session) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      getUserOrders().then((res: any) => {
-        if (res.orders) setOrders(res.orders);
-        setLoadingOrders(false);
-      });
+      getUserOrders()
+        .then((res) => {
+          if (res?.orders) setOrders(res.orders);
+        })
+        .catch((err) => {
+          console.error("Failed to fetch orders:", err);
+        })
+        .finally(() => {
+          setLoadingOrders(false);
+        });
     } else if (!isPending) {
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setLoadingOrders(false);
     }
-  }, [session, isPending]);
+    if (!isPending && !session) {
+      router.push("/track-order");
+    }
+  }, [session, isPending, router]);
 
   if (isPending) {
     return (
@@ -42,10 +52,6 @@ export default function ClientProfile() {
         جاري تحميل بروفايلك...
       </div>
     );
-  }
-
-  if (!session) {
-    redirect("/track-order");
   }
 
   const getStatusIcon = (status: string) => {

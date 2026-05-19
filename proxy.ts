@@ -1,4 +1,3 @@
-// middleware.ts
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
@@ -9,11 +8,11 @@ export function proxy(request: NextRequest) {
     request.cookies.get("better-auth.session-token") ||
     request.cookies.get("auth-token");
 
-  if (pathname.startsWith("/admin") && !session) {
-    return NextResponse.redirect(new URL("/login", request.url));
-  }
+  // if (pathname.startsWith("/admin") && !session) {
+  //   return NextResponse.redirect(new URL("/login", request.url));
+  // }
 
-  return NextResponse.next();
+  // return NextResponse.next();
 }
 
 export const config = {

@@ -102,7 +102,7 @@ model User {
   name          String
   email         String   @unique
   emailVerified Boolean
-  phone         String?  @unique
+  phone         String?  @unique 
   image         String?
   role          Role     @default(USER)
   createdAt     DateTime @default(now())

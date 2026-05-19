@@ -43,8 +43,13 @@ export default function OrderDetailsPage() {
       </div>
     );
 
-  const formatDate = (date: Date) => new Date(date).toLocaleString("ar-EG");
-
+  const formatDate = (date?: Date) => {
+    if (!date) return "غير متوفر";
+    return new Date(date).toLocaleString("ar-EG", {
+      dateStyle: "medium",
+      timeStyle: "short",
+    });
+  };
   return (
     <div
       className="min-h-screen bg-slate-50 dark:bg-[#050505] py-8 px-4"
